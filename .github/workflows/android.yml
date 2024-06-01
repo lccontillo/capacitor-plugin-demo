@@ -1,0 +1,41 @@
+name: Android Build
+
+on:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 20
+  JAVA_VERSION: 17
+
+jobs:
+  build:
+    name: Build Android platform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web assets
+        run: npm run build
+      - name: Copy web assets to native platform
+        run: npx ionic capacitor copy android --no-build
+      - name: Update native platform
+        run: npx ionic capacitor update android
+      - name: Build with Gradle
+        working-directory: android
+        run: ./gradlew build
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: android/app/build/outputs/apk/
